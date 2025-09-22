@@ -178,6 +178,130 @@ def finetune(
         device,
     )
 
+# Catastrophic Forgetting in the last k layers, picked from Goel et al., Evaluating Inexact Unlearning
+def freeze_first_k_layers(model, k):
+    # Get model layers
+    layer_names = list(model._modules.keys())
+    if k > len(layer_names):
+        raise ValueError(
+            f"Cannot freeze {k} layers; the model has only {len(layer_names)} layers."
+        )
+
+    layer_count = 0
+    for layer in model.children():
+        # Freeze only the first k layers
+        if layer_count < k:
+            for param in layer.parameters():
+                param.requires_grad = False
+            print(f"Layer {layer_count+1} ({layer.__class__.__name__}) frozen.")
+        layer_count += 1
+
+    return model
+
+def CF_k(model, unlearning_teacher, retain_train_dl, retain_valid_dl, forget_train_dl, forget_valid_dl, valid_dl, device, **kwargs):
+    k = 2
+    if 'k' in kwargs:
+        k = kwargs['k']
+    model.to(device)
+    modules = list(model.children())
+
+    model = freeze_first_k_layers(model, len(modules) - k)
+
+    _ = fit_one_cycle(
+        5, model, retain_train_dl, retain_valid_dl, lr=0.02, device=device
+    )
+    
+    return get_metric_scores(
+        model,
+        unlearning_teacher,
+        retain_train_dl,
+        retain_valid_dl,
+        forget_train_dl,
+        forget_valid_dl,
+        valid_dl,
+        device,
+    )
+
+# Exact Unlearning in the last k layers, picked from Goel et al., Evaluating Inexact Unlearning
+def initialize_last_k_layers(model, k):
+    # Check for valid k
+    if k <= 0:
+        raise ValueError("k must be a positive integer.")
+
+    # Get model layers
+    layer_names = list(model._modules.keys())
+
+    if k > len(layer_names):
+        raise ValueError(
+            f"Cannot replace {k} layers; the model has only {len(layer_names)} layers."
+        )
+
+    # Replace layers starting from the end
+    for i in range(1, k + 1):
+        layer_name = layer_names[-i]
+        layer = getattr(model, layer_name)
+
+        if isinstance(layer, nn.Linear):
+            # Initialize the last fully connected layer
+            setattr(model, layer_name, nn.Linear(layer.in_features, layer.out_features))
+            nn.init.kaiming_uniform_(
+                getattr(model, layer_name).weight, nonlinearity="relu"
+            )
+            if getattr(model, layer_name).bias is not None:
+                nn.init.constant_(getattr(model, layer_name).bias, 0)
+        elif isinstance(layer, nn.Conv2d):
+            # Initialize convolutional layers
+            setattr(
+                model,
+                layer_name,
+                nn.Conv2d(
+                    layer.in_channels,
+                    layer.out_channels,
+                    layer.kernel_size,
+                    stride=layer.stride,
+                    padding=layer.padding,
+                ),
+            )
+            nn.init.kaiming_uniform_(
+                getattr(model, layer_name).weight, nonlinearity="relu"
+            )
+            if getattr(model, layer_name).bias is not None:
+                nn.init.constant_(getattr(model, layer_name).bias, 0)
+        elif isinstance(layer, nn.Sequential):
+            # Initialize layers inside a sequential module
+            for block in layer:
+                for submodule in block.children():
+                    if isinstance(submodule, nn.Conv2d):
+                        nn.init.kaiming_uniform_(submodule.weight, nonlinearity="relu")
+                        if submodule.bias is not None:
+                            nn.init.constant_(submodule.bias, 0)
+                        break  # Only modify one Conv2d layer per block
+                break  # Only modify one block per Sequential module
+
+
+def EU_k(model, unlearning_teacher, retain_train_dl, retain_valid_dl, forget_train_dl, forget_valid_dl, valid_dl, device, **kwargs):
+    k = 2
+    if 'k' in kwargs:
+        k = kwargs['k']
+    modules = list(model.children())
+    model = freeze_first_k_layers(model,  len(modules) - k)
+    initialize_last_k_layers(model=model, k=k)
+    model.to(device)
+
+    fit_one_cycle(
+        5, model, retain_train_dl, retain_valid_dl, lr=0.02, device=device
+    )
+    
+    return get_metric_scores(
+        model,
+        unlearning_teacher,
+        retain_train_dl,
+        retain_valid_dl,
+        forget_train_dl,
+        forget_valid_dl,
+        valid_dl,
+        device,
+    )
 
 # Bad Teacher from https://github.com/vikram2000b/bad-teaching-unlearning
 def blindspot(
