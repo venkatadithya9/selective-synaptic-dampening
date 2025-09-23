@@ -15,7 +15,7 @@ declare -a StringArray=("rocket" "mushroom" "baby" "lamp" "sea") # classes to it
 
 dataset=Cifar100
 n_classes=100
-weight_path= # Add the path to your ResNet weights
+weight_path='/home/ava/Codes/selective-synaptic-dampening/src/checkpoint/resnet18/Tuesday_23_September_2025_12h_14m_07s/resnet18-Cifar100-181-best.pth' # Add the path to your ResNet weights
 
 for val in "${StringArray[@]}"; do
     forget_class=$val

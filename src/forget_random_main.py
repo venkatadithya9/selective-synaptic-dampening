@@ -52,11 +52,16 @@ parser.add_argument(
     choices=["Cifar10", "Cifar20", "Cifar100", "PinsFaceRecognition"],
     help="dataset to train on",
 )
-parser.add_argument("-classes", type=int, required=True, help="number of classes")
-parser.add_argument("-gpu", action="store_true", default=False, help="use gpu or not")
-parser.add_argument("-b", type=int, default=128, help="batch size for dataloader")
-parser.add_argument("-warm", type=int, default=1, help="warm up training phase")
-parser.add_argument("-lr", type=float, default=0.1, help="initial learning rate")
+parser.add_argument("-classes", type=int, required=True,
+                    help="number of classes")
+parser.add_argument("-gpu", action="store_true",
+                    default=False, help="use gpu or not")
+parser.add_argument("-b", type=int, default=128,
+                    help="batch size for dataloader")
+parser.add_argument("-warm", type=int, default=1,
+                    help="warm up training phase")
+parser.add_argument("-lr", type=float, default=0.1,
+                    help="initial learning rate")
 parser.add_argument(
     "-method",
     type=str,
@@ -70,6 +75,8 @@ parser.add_argument(
         "amnesiac",
         "FisherForgetting",
         "ssd_tuning",
+        "EU_k",
+        "CF_k"
     ],
     help="select unlearning method from choice set",
 )
@@ -112,8 +119,10 @@ validset = getattr(datasets, args.dataset)(
     root=root, download=True, train=False, unlearning=True, img_size=img_size
 )
 
-trainloader = DataLoader(trainset, num_workers=4, batch_size=args.b, shuffle=True)
-validloader = DataLoader(validset, num_workers=4, batch_size=args.b, shuffle=False)
+trainloader = DataLoader(trainset, num_workers=4,
+                         batch_size=args.b, shuffle=True)
+validloader = DataLoader(validset, num_workers=4,
+                         batch_size=args.b, shuffle=False)
 forget_train, retain_train = torch.utils.data.random_split(
     trainset, [args.forget_perc, 1 - args.forget_perc]
 )
@@ -160,7 +169,6 @@ wandb.init(
 
 # wandb.init(project=f"{args.dataset}_forget_random_{args.forget_perc}", name=f'{args.method}')
 
-import time
 
 start = time.time()
 
@@ -179,7 +187,8 @@ wandb.log(
         "MIA": mia,
         "Df": d_f,
         "model_scaler": model_size_scaler,
-        "MethodTime": time_elapsed,  # do not forget to deduct baseline time from it to remove results calc (acc, MIA, ...)
+        # do not forget to deduct baseline time from it to remove results calc (acc, MIA, ...)
+        "MethodTime": time_elapsed,
     }
 )
 

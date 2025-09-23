@@ -53,11 +53,16 @@ parser.add_argument(
     choices=["Cifar10", "Cifar20", "Cifar100", "PinsFaceRecognition"],
     help="dataset to train on",
 )
-parser.add_argument("-classes", type=int, required=True, help="number of classes")
-parser.add_argument("-gpu", action="store_true", default=False, help="use gpu or not")
-parser.add_argument("-b", type=int, default=64, help="batch size for dataloader")
-parser.add_argument("-warm", type=int, default=1, help="warm up training phase")
-parser.add_argument("-lr", type=float, default=0.1, help="initial learning rate")
+parser.add_argument("-classes", type=int, required=True,
+                    help="number of classes")
+parser.add_argument("-gpu", action="store_true",
+                    default=False, help="use gpu or not")
+parser.add_argument("-b", type=int, default=64,
+                    help="batch size for dataloader")
+parser.add_argument("-warm", type=int, default=1,
+                    help="warm up training phase")
+parser.add_argument("-lr", type=float, default=0.1,
+                    help="initial learning rate")
 parser.add_argument(
     "-method",
     type=str,
@@ -111,7 +116,7 @@ batch_size = args.b
 
 # get network
 net = getattr(models, args.net)(num_classes=args.classes)
-net.load_state_dict(torch.load(args.weight_path))
+net.load_state_dict(torch.load(args.weight_path, weights_only=True))
 
 # for bad teacher
 unlearning_teacher = getattr(models, args.net)(num_classes=args.classes)
@@ -133,8 +138,10 @@ validset = getattr(datasets, args.dataset)(
 )
 
 # Set up the dataloaders and prepare the datasets
-trainloader = DataLoader(trainset, num_workers=4, batch_size=args.b, shuffle=True)
-validloader = DataLoader(validset, num_workers=4, batch_size=args.b, shuffle=False)
+trainloader = DataLoader(trainset, num_workers=4,
+                         batch_size=args.b, shuffle=True)
+validloader = DataLoader(validset, num_workers=4,
+                         batch_size=args.b, shuffle=False)
 
 classwise_train, classwise_test = forget_full_class_strategies.get_classwise_ds(
     trainset, args.classes
@@ -191,7 +198,6 @@ wandb.init(
 )
 
 # Time the method
-import time
 
 start = time.time()
 
@@ -211,7 +217,8 @@ wandb.log(
         "ZRF": zrf,
         "MIA": mia,
         "Df": d_f,
-        "MethodTime": time_elapsed,  # do not forget to deduct baseline time from it to remove results calc (acc, MIA, ...)
+        # do not forget to deduct baseline time from it to remove results calc (acc, MIA, ...)
+        "MethodTime": time_elapsed,
     }
 )
 wandb.finish()

@@ -14,20 +14,24 @@ seed=$2
 forget_perc=0.00165 # 100 samples
 dataset=Cifar10
 n_classes=10
-weight_path= # Add the path to your ResNet weights
+weight_path="/home/ava/Codes/selective-synaptic-dampening/src/checkpoint/ResNet18/resnet18-cifar10-base.pth" # Add the path to your ResNet weights
 
 # Run the Python script
-CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method baseline -forget_perc $forget_perc -weight_path $weight_path -seed $seed
+# CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method baseline -forget_perc $forget_perc -weight_path $weight_path -seed $seed
 reset_cuda
 CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method ssd_tuning -forget_perc $forget_perc -weight_path $weight_path -seed $seed
-reset_cuda
-CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method finetune -forget_perc $forget_perc -weight_path $weight_path -seed $seed
-reset_cuda
-CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method amnesiac -forget_perc $forget_perc -weight_path $weight_path -seed $seed
+# reset_cuda
+# CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method finetune -forget_perc $forget_perc -weight_path $weight_path -seed $seed
+# reset_cuda
+# CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method amnesiac -forget_perc $forget_perc -weight_path $weight_path -seed $seed
 reset_cuda
 CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method blindspot -forget_perc $forget_perc -weight_path $weight_path -seed $seed
 reset_cuda
-CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method UNSIR -forget_perc $forget_perc -weight_path $weight_path -seed $seed
+CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method FisherForgetting -forget_perc $forget_perc -weight_path $weight_path -seed $seed
 reset_cuda
-CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method retrain -forget_perc $forget_perc -weight_path $weight_path -seed $seed
-reset_cuda
+# CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method retrain -forget_perc $forget_perc -weight_path $weight_path -seed $seed
+# reset_cuda
+# CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method EU_k -forget_perc $forget_perc -weight_path $weight_path -seed $seed
+# reset_cuda
+# CUDA_VISIBLE_DEVICES=$DEVICE python forget_random_main.py -net ResNet18 -dataset $dataset -classes $n_classes -gpu -method CF_k -forget_perc $forget_perc -weight_path $weight_path -seed $seed
+# reset_cuda

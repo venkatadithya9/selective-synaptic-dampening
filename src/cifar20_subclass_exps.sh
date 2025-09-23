@@ -35,4 +35,8 @@ for val in "${StringArray[@]}"; do
     reset_cuda
     CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method retrain -forget_class $forget_class -weight_path $weight_path -seed $seed
     reset_cuda
+    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method EU_k -forget_class $forget_class -weight_path $weight_path -seed $seed
+    reset_cuda
+    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method CF_k -forget_class $forget_class -weight_path $weight_path -seed $seed
+    reset_cuda
 done

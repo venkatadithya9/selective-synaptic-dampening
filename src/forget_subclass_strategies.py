@@ -76,9 +76,11 @@ def get_metric_scores(
 ):
     loss_acc_dict = evaluate(model, valid_dl, device)
     retain_acc_dict = evaluate(model, retain_valid_dl, device)
-    zrf = UnLearningScore(model, unlearning_teacher, forget_valid_dl, 128, device)
+    zrf = UnLearningScore(model, unlearning_teacher,
+                          forget_valid_dl, 128, device)
     d_f = evaluate(model, forget_valid_dl, device)
-    mia = get_membership_attack_prob(retain_train_dl, forget_train_dl, valid_dl, model)
+    mia = get_membership_attack_prob(
+        retain_train_dl, forget_train_dl, valid_dl, model)
 
     return (loss_acc_dict["Acc"], retain_acc_dict["Acc"], zrf, mia, d_f["Acc"])
 
@@ -161,6 +163,91 @@ def finetune(
     **kwargs,
 ):
     _ = fit_one_cycle(
+        5, model, retain_train_dl, retain_valid_dl, lr=0.02, device=device
+    )
+
+    return get_metric_scores(
+        model,
+        unlearning_teacher,
+        retain_train_dl,
+        retain_valid_dl,
+        forget_train_dl,
+        forget_valid_dl,
+        valid_dl,
+        device,
+    )
+
+# Exact Unlearning in the last k layers, picked from Goel et al., Evaluating Inexact Unlearning
+
+
+def initialize_last_k_layers(model, k):
+    # Check for valid k
+    if k <= 0:
+        raise ValueError("k must be a positive integer.")
+
+    # Get model layers
+    layer_names = list(model._modules.keys())
+
+    if k > len(layer_names):
+        raise ValueError(
+            f"Cannot replace {k} layers; the model has only {len(layer_names)} layers."
+        )
+
+    # Replace layers starting from the end
+    for i in range(1, k + 1):
+        layer_name = layer_names[-i]
+        layer = getattr(model, layer_name)
+
+        if isinstance(layer, nn.Linear):
+            # Initialize the last fully connected layer
+            setattr(model, layer_name, nn.Linear(
+                layer.in_features, layer.out_features))
+            nn.init.kaiming_uniform_(
+                getattr(model, layer_name).weight, nonlinearity="relu"
+            )
+            if getattr(model, layer_name).bias is not None:
+                nn.init.constant_(getattr(model, layer_name).bias, 0)
+        elif isinstance(layer, nn.Conv2d):
+            # Initialize convolutional layers
+            setattr(
+                model,
+                layer_name,
+                nn.Conv2d(
+                    layer.in_channels,
+                    layer.out_channels,
+                    layer.kernel_size,
+                    stride=layer.stride,
+                    padding=layer.padding,
+                ),
+            )
+            nn.init.kaiming_uniform_(
+                getattr(model, layer_name).weight, nonlinearity="relu"
+            )
+            if getattr(model, layer_name).bias is not None:
+                nn.init.constant_(getattr(model, layer_name).bias, 0)
+        elif isinstance(layer, nn.Sequential):
+            # Initialize layers inside a sequential module
+            for block in layer:
+                for submodule in block.children():
+                    if isinstance(submodule, nn.Conv2d):
+                        nn.init.kaiming_uniform_(
+                            submodule.weight, nonlinearity="relu")
+                        if submodule.bias is not None:
+                            nn.init.constant_(submodule.bias, 0)
+                        break  # Only modify one Conv2d layer per block
+                break  # Only modify one block per Sequential module
+
+
+def EU_k(model, unlearning_teacher, retain_train_dl, retain_valid_dl, forget_train_dl, forget_valid_dl, valid_dl, device, **kwargs):
+    k = 2
+    if 'k' in kwargs:
+        k = kwargs['k']
+    modules = list(model.children())
+    model = freeze_first_k_layers(model,  len(modules) - k)
+    initialize_last_k_layers(model=model, k=k)
+    model.to(device)
+
+    fit_one_cycle(
         5, model, retain_train_dl, retain_valid_dl, lr=0.02, device=device
     )
 
@@ -282,7 +369,8 @@ def FisherForgetting(
 ):
     def hessian(dataset, model):
         model.eval()
-        train_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
+        train_loader = torch.utils.data.DataLoader(
+            dataset, batch_size=1, shuffle=False)
         loss_fn = nn.CrossEntropyLoss()
 
         for p in model.parameters():
@@ -301,7 +389,8 @@ def FisherForgetting(
                 loss.backward(retain_graph=True)
                 for p in model.parameters():
                     if p.requires_grad:
-                        p.grad_acc += (orig_target == target).float() * p.grad.data
+                        p.grad_acc += (orig_target ==
+                                       target).float() * p.grad.data
                         p.grad2_acc += prob[:, y] * p.grad.data.pow(2)
 
         for p in model.parameters():
@@ -369,7 +458,8 @@ def UNSIR(
         num_subclasses,
     )
     noise_batch_size = 32
-    retain_valid_dl = DataLoader(retain_valid_dl.dataset, batch_size=noise_batch_size)
+    retain_valid_dl = DataLoader(
+        retain_valid_dl.dataset, batch_size=noise_batch_size)
     # collect some samples from each class
     num_samples = 500
     retain_samples = []

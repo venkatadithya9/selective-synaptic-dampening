@@ -55,11 +55,16 @@ parser.add_argument(
 parser.add_argument(
     "-superclasses", type=int, required=True, help="number of superclasses"
 )
-parser.add_argument("-subclasses", type=int, required=True, help="number of subclasses")
-parser.add_argument("-gpu", action="store_true", default=False, help="use gpu or not")
-parser.add_argument("-b", type=int, default=64, help="batch size for dataloader")
-parser.add_argument("-warm", type=int, default=1, help="warm up training phase")
-parser.add_argument("-lr", type=float, default=0.1, help="initial learning rate")
+parser.add_argument("-subclasses", type=int, required=True,
+                    help="number of subclasses")
+parser.add_argument("-gpu", action="store_true",
+                    default=False, help="use gpu or not")
+parser.add_argument("-b", type=int, default=64,
+                    help="batch size for dataloader")
+parser.add_argument("-warm", type=int, default=1,
+                    help="warm up training phase")
+parser.add_argument("-lr", type=float, default=0.1,
+                    help="initial learning rate")
 parser.add_argument(
     "-method",
     type=str,
@@ -74,6 +79,8 @@ parser.add_argument(
         "UNSIR",
         "FisherForgetting",
         "ssd_tuning",
+        "EU_k",
+        "CF_k"
     ],
     help="select unlearning method from choice set",
 )
@@ -123,8 +130,10 @@ validset = getattr(datasets, args.dataset)(
     root=root, download=True, train=False, unlearning=True, img_size=img_size
 )
 
-trainloader = DataLoader(trainset, num_workers=4, batch_size=args.b, shuffle=True)
-validloader = DataLoader(validset, num_workers=4, batch_size=args.b, shuffle=False)
+trainloader = DataLoader(trainset, num_workers=4,
+                         batch_size=args.b, shuffle=True)
+validloader = DataLoader(validset, num_workers=4,
+                         batch_size=args.b, shuffle=False)
 
 classwise_train, classwise_test = forget_subclass_strategies.get_classwise_ds(
     trainset, args.subclasses
@@ -189,8 +198,6 @@ wandb.init(
 )
 
 
-import time
-
 start = time.time()
 
 
@@ -209,7 +216,8 @@ wandb.log(
         "ZRF": zrf,
         "MIA": mia,
         "Df": d_f,
-        "MethodTime": time_elapsed,  # do not forget to deduct baseline time from it to remove results calc (acc, MIA, ...)
+        # do not forget to deduct baseline time from it to remove results calc (acc, MIA, ...)
+        "MethodTime": time_elapsed,
     }
 )
 
