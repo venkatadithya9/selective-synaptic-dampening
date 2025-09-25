@@ -64,6 +64,138 @@ def build_retain_forget_sets(
     return (retain_train, retain_valid, forget_train, forget_valid)
 
 
+def replace_indexes(logger, dataset: torch.utils.data.Dataset, indexes: Union[List[int], np.ndarray], only_mark: bool = False):
+    if not only_mark:
+        ''' Golatkar's replacement
+        rng = np.random.RandomState(seed)
+        new_indexes = rng.choice(list(set(range(len(dataset))) - set(indexes)), size=len(indexes))
+        dataset.data[indexes] = dataset.data[new_indexes]
+        dataset.targets[indexes] = dataset.targets[new_indexes]
+        '''
+        old_size = len(dataset.data)
+        retain_indexes = list(set(range(len(dataset))) - set(indexes))
+        logger.debug(f'Removed targets: {dataset.targets[indexes]}')
+        dataset.data = dataset.data[retain_indexes]
+        dataset.targets = dataset.targets[retain_indexes]
+        new_size = len(dataset.data)
+        logger.debug(f'Oldsize: {old_size}\t Newsize:{new_size}')
+        return dataset
+    else:
+        # Notice the -1 to make class 0 work
+        logger.debug(f'Marking forget set targets: {dataset.targets[indexes]}')
+        dataset.targets[indexes] = - dataset.targets[indexes] - 1
+        return dataset
+
+
+def add_confusion(dataset: torch.utils.data.Dataset, confusion: List[List[int]], conf_copy: bool):
+    num_classes = len(confusion)
+    confset = deepcopy(dataset)
+    confused_indices = []
+    for i in range(num_classes):
+        class_i_indexes = np.flatnonzero(np.array(dataset.targets) == i)
+        last_rep = 0
+        for j in range(num_classes):
+            if i == j:
+                continue
+            # Replace first C_{i, j} starting from last_rep indexes
+            for itr in range(confusion[i][j]):
+                idx = class_i_indexes[last_rep + itr]
+                confset.targets[idx] = j
+                confused_indices.append(idx)
+            last_rep += confusion[i][j]
+
+    return confset, confused_indices, dataset
+
+
+def replace_class(logger, dataset: torch.utils.data.Dataset, class_to_replace: int, num_indexes_to_replace: int = None,
+                  seed: int = 0, only_mark: bool = False):
+    indexes = np.flatnonzero(np.array(dataset.targets) == class_to_replace)
+    if num_indexes_to_replace is not None:
+        assert num_indexes_to_replace <= len(
+            indexes), f"Want to replace {num_indexes_to_replace} indexes but only {len(indexes)} samples in dataset"
+        rng = np.random.RandomState(seed)  # random number generator
+        indexes = rng.choice(
+            indexes, size=num_indexes_to_replace, replace=False)
+        logger.info(f"Replacing indexes {indexes}")
+    return replace_indexes(logger, dataset, indexes, only_mark)
+
+
+def get_loaders(logger, classwise_train, classwise_test, class_to_replace: int = None, num_indexes_to_replace: int = None, seed: int = 1,
+                only_mark: bool = False, root: str = None, batch_size=128, shuffle=True, **dataset_kwargs):
+    '''
+
+    :param dataset_name: Name of dataset to use
+    :param class_to_replace: If not None, specifies which class to replace completely or partially
+    :param num_indexes_to_replace: If None, all samples from `class_to_replace` are replaced. Else, only replace
+                                   `num_indexes_to_replace` samples
+    :param indexes_to_replace: If not None, denotes the indexes of samples to replace. Only one of class_to_replace and
+                               indexes_to_replace can be specidied.
+    :param seed: Random seed to sample the samples to replace and to initialize the data loaders so that they sample
+                 always in the same order
+    :param root: Root directory to initialize the dataset
+    :param batch_size: Batch size of data loader
+    :param shuffle: Whether train data should be randomly shuffled when loading (test data are never shuffled)
+    :param dataset_kwargs: Extra arguments to pass to the dataset init.
+    :return: The train_loader and test_loader
+    '''
+    seed_everything(seed)
+
+    if root is None:
+        root = os.path.expanduser('~/data')
+    train_set, test_set = _DATASETS[dataset_name](root, **dataset_kwargs)
+    train_set.targets = np.array(train_set.targets)
+    test_set.targets = np.array(test_set.targets)
+
+    valid_set = deepcopy(train_set)
+    rng = np.random.RandomState(seed)
+
+    valid_idx = []
+    for i in range(max(train_set.targets) + 1):
+        class_idx = np.where(train_set.targets == i)[0]
+        valid_idx.append(rng.choice(class_idx, int(
+            validsplit*len(class_idx)), replace=False))
+    valid_idx = np.hstack(valid_idx)
+
+    train_idx = list(set(range(len(train_set)))-set(valid_idx))
+
+    train_set_copy = deepcopy(train_set)
+
+    train_set.data = train_set_copy.data[train_idx]
+    train_set.targets = train_set_copy.targets[train_idx]
+
+    valid_set.data = train_set_copy.data[valid_idx]
+    valid_set.targets = train_set_copy.targets[valid_idx]
+
+    '''Modified here by Shash'''
+    confused_indices = None
+
+    if class_to_replace is not None:
+        logger.info(
+            f'C_f: {class_to_replace}\t N_f: {num_indexes_to_replace}\t only_mark: {only_mark}\t train_size: {len(train_set.data)}')
+        if class_to_replace == -1:
+            rng = np.random.RandomState(seed-1)
+            indexes = rng.choice(range(len(train_set)),
+                                 size=num_indexes_to_replace, replace=False)
+            train_set = replace_indexes(logger, train_set, indexes, only_mark)
+        else:
+            train_set = replace_class(logger, train_set, class_to_replace, num_indexes_to_replace=num_indexes_to_replace,
+                                      seed=seed-1, only_mark=only_mark)
+
+    loader_args = {'num_workers': 0, 'pin_memory': False}
+
+    def _init_fn(worker_id):
+        np.random.seed(int(seed))
+
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=shuffle,
+                                               worker_init_fn=_init_fn if seed is not None else None, **loader_args)
+    valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=False,
+                                               worker_init_fn=_init_fn if seed is not None else None, **loader_args)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False,
+                                              worker_init_fn=_init_fn if seed is not None else None, **loader_args)
+
+    return train_loader, valid_loader, test_loader, confused_indices
+
+
 def get_metric_scores(
     model,
     unlearning_teacher,

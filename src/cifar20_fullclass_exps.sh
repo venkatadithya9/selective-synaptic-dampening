@@ -13,7 +13,7 @@ seed=$2
 declare -a StringArray=("vehicle2" "veg" "people" "electrical_devices" "natural_scenes" ) # classes to iterate over
 dataset=Cifar20
 n_classes=20
-weight_path= # Add the path to your ResNet weights
+weight_path='/home/ava/Codes/selective-synaptic-dampening/src/checkpoint/ResNet18/resnet18-cifar20-base.pth' # Add the path to your ResNet weights
 
 for val in "${StringArray[@]}"; do
     forget_class=$val

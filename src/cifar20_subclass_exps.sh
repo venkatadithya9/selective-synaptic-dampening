@@ -16,27 +16,27 @@ dataset=Cifar20
 n_superclasses=20
 n_subclasses=100
 
-weight_path= # Add the path to your ResNet weights
+weight_path='/home/ava/Codes/selective-synaptic-dampening/src/checkpoint/ResNet18/resnet18-cifar20-base.pth' # Add the path to your ResNet weights
 
 for val in "${StringArray[@]}"; do
     forget_class=$val
     # Run the Python script
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method baseline -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method ssd_tuning -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method finetune -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method amnesiac -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method blindspot -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method UNSIR -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method retrain -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method baseline -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method ssd_tuning -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method finetune -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method amnesiac -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method blindspot -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method UNSIR -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method retrain -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
     CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method EU_k -forget_class $forget_class -weight_path $weight_path -seed $seed
     reset_cuda
-    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method CF_k -forget_class $forget_class -weight_path $weight_path -seed $seed
-    reset_cuda
+#    CUDA_VISIBLE_DEVICES=$DEVICE python forget_subclass_main.py -net ResNet18 -dataset $dataset -superclasses $n_superclasses -subclasses $n_subclasses -gpu -method CF_k -forget_class $forget_class -weight_path $weight_path -seed $seed
+#    reset_cuda
 done
